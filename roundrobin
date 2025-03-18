@@ -1,0 +1,75 @@
+#include <stdio.h>
+
+#define MAX 100
+
+typedef struct {
+    int pid, at, bt, ct, tat, wt, remaining_bt;
+} Process;
+
+void calculate_TAT_WT(Process p[], int n) {
+    for (int i = 0; i < n; i++) {
+        p[i].tat = p[i].ct - p[i].at;
+        p[i].wt = p[i].tat - p[i].bt;
+    }
+}
+
+void round_robin(Process p[], int n, int quantum) {
+    int time = 0, completed = 0, i;
+    int remaining_bt[MAX];
+
+    for (i = 0; i < n; i++)
+        remaining_bt[i] = p[i].bt;
+
+    while (completed < n) {
+        int done = 1;
+        for (i = 0; i < n; i++) {
+            if (remaining_bt[i] > 0 && p[i].at <= time) {
+                done = 0;
+                if (remaining_bt[i] > quantum) {
+                    time += quantum;
+                    remaining_bt[i] -= quantum;
+                } else {
+                    time += remaining_bt[i];
+                    p[i].ct = time;
+                    remaining_bt[i] = 0;
+                    completed++;
+                }
+            }
+        }
+        if (done)
+            time++;
+    }
+
+    calculate_TAT_WT(p, n);
+}
+
+void display_results(Process p[], int n) {
+    printf("\nPID\tAT\tBT\tCT\tTAT\tWT\n");
+    for (int i = 0; i < n; i++)
+        printf("%d\t%d\t%d\t%d\t%d\t%d\n",
+               p[i].pid, p[i].at, p[i].bt, p[i].ct, p[i].tat, p[i].wt);
+}
+
+int main() {
+    int n, quantum, i;
+    Process p[MAX];
+
+    printf("Enter number of processes: ");
+    scanf("%d", &n);
+
+    for (i = 0; i < n; i++) {
+        printf("Enter Process ID, Arrival Time, and Burst Time for P%d: ", i + 1);
+        scanf("%d %d %d", &p[i].pid, &p[i].at, &p[i].bt);
+        p[i].remaining_bt = p[i].bt;
+    }
+
+    printf("Enter time quantum for Round Robin: ");
+    scanf("%d", &quantum);
+
+    round_robin(p, n, quantum);
+
+    printf("\n--- Round Robin Scheduling ---\n");
+    display_results(p, n);
+
+    return 0;
+}
