@@ -1,0 +1,87 @@
+#include <stdio.h>
+#include <stdbool.h>
+
+#define MAX 100
+
+typedef struct {
+    int pid, at, bt, priority, ct, tat, wt, remaining_bt;
+} Process;
+
+void calculate_TAT_WT(Process p[], int n) {
+    for (int i = 0; i < n; i++) {
+        p[i].tat = p[i].ct - p[i].at;
+        p[i].wt = p[i].tat - p[i].bt;
+    }
+}
+
+void priority_scheduling(Process p[], int n, bool is_preemptive) {
+    int completed = 0, time = 0, min_index;
+    bool visited[MAX] = {false};
+    
+    while (completed < n) {
+        min_index = -1;
+        for (int i = 0; i < n; i++) {
+            if (p[i].at <= time && !visited[i]) {
+                if (min_index == -1 || p[i].priority < p[min_index].priority) {
+                    min_index = i;
+                }
+            }
+        }
+        if (min_index == -1) {
+            time++;
+            continue;
+        }
+        if (is_preemptive) {
+            p[min_index].remaining_bt--;
+            time++;
+            if (p[min_index].remaining_bt == 0) {
+                visited[min_index] = true;
+                p[min_index].ct = time;
+                completed++;
+            }
+        } else {
+            time += p[min_index].bt;
+            p[min_index].ct = time;
+            visited[min_index] = true;
+            completed++;
+        }
+    }
+    calculate_TAT_WT(p, n);
+}
+
+void display_results(Process p[], int n) {
+    printf("\nPID\tAT\tBT\tPriority\tCT\tTAT\tWT\n");
+    for (int i = 0; i < n; i++)
+        printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\n", p[i].pid, p[i].at, p[i].bt, p[i].priority, p[i].ct, p[i].tat, p[i].wt);
+}
+
+int main() {
+    int n, choice;
+    Process p[MAX];
+
+    printf("Enter number of processes: ");
+    scanf("%d", &n);
+
+    for (int i = 0; i < n; i++) {
+        printf("Enter Process ID, Arrival Time, Burst Time, and Priority for P%d: ", i + 1);
+        scanf("%d %d %d %d", &p[i].pid, &p[i].at, &p[i].bt, &p[i].priority);
+        p[i].remaining_bt = p[i].bt;
+    }
+
+    printf("\nChoose Scheduling Algorithm:\n");
+    printf("1. Priority (Preemptive)\n");
+    printf("2. Priority (Non-Preemptive)\n");
+    printf("Enter your choice: ");
+    scanf("%d", &choice);
+
+    if (choice == 1) {
+        priority_scheduling(p, n, true);
+        printf("\n--- Priority Scheduling (Preemptive) ---\n");
+    } else {
+        priority_scheduling(p, n, false);
+        printf("\n--- Priority Scheduling (Non-Preemptive) ---\n");
+    }
+    
+    display_results(p, n);
+    return 0;
+}
