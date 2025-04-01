@@ -1,0 +1,87 @@
+#include <stdio.h>
+
+#define MAX 10
+
+typedef struct {
+    int pid;
+    int arrival_time;
+    int burst_time;
+    int completion_time;
+    int waiting_time;
+    int turnaround_time;
+} Process;
+
+void sort_by_arrival(Process p[], int n) {
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = 0; j < n - i - 1; j++) {
+            if (p[j].arrival_time > p[j + 1].arrival_time) {
+                Process temp = p[j];
+                p[j] = p[j + 1];
+                p[j + 1] = temp;
+            }
+        }
+    }
+}
+
+void fcfs_scheduling(Process p[], int n) {
+    int current_time = 0;
+    for (int i = 0; i < n; i++) {
+        if (current_time < p[i].arrival_time)
+            current_time = p[i].arrival_time;
+        
+        p[i].completion_time = current_time + p[i].burst_time;
+        p[i].turnaround_time = p[i].completion_time - p[i].arrival_time;
+        p[i].waiting_time = p[i].turnaround_time - p[i].burst_time;
+        
+        current_time = p[i].completion_time;
+    }
+}
+
+void display(Process p[], int n) {
+    printf("\nPID\tArrival\tBurst\tCompletion\tTurnaround\tWaiting\n");
+    for (int i = 0; i < n; i++) {
+        printf("%d\t%d\t%d\t%d\t%d\t%d\n", p[i].pid, p[i].arrival_time, p[i].burst_time, p[i].completion_time, p[i].turnaround_time, p[i].waiting_time);
+    }
+}
+
+int main() {
+    int n, sys_count = 0, user_count = 0;
+    Process system_queue[MAX], user_queue[MAX];
+    
+    printf("Enter the number of processes: ");
+    scanf("%d", &n);
+    
+    for (int i = 0; i < n; i++) {
+        int type;
+        Process p;
+        
+        printf("Enter Process ID: ");
+        scanf("%d", &p.pid);
+        printf("Enter Arrival Time: ");
+        scanf("%d", &p.arrival_time);
+        printf("Enter Burst Time: ");
+        scanf("%d", &p.burst_time);
+        printf("Enter Process Type (0 for System, 1 for User): ");
+        scanf("%d", &type);
+        
+        if (type == 0)
+            system_queue[sys_count++] = p;
+        else
+            user_queue[user_count++] = p;
+    }
+    
+  
+    sort_by_arrival(system_queue, sys_count);
+    sort_by_arrival(user_queue, user_count);
+    
+  
+    printf("\nScheduling System Processes\n");
+    fcfs_scheduling(system_queue, sys_count);
+    display(system_queue, sys_count);
+    
+    printf("\nScheduling User Processes\n");
+    fcfs_scheduling(user_queue, user_count);
+    display(user_queue, user_count);
+    
+    return 0;
+}
