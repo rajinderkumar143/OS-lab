@@ -1,0 +1,99 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <unistd.h>
+
+#define NUM_PHILOSOPHERS 5
+
+#define THINKING 0
+#define HUNGRY   1
+#define EATING   2
+
+pthread_mutex_t mutex;
+pthread_mutex_t forks[NUM_PHILOSOPHERS];
+pthread_cond_t cond[NUM_PHILOSOPHERS];
+
+int state[NUM_PHILOSOPHERS];
+
+void think(int philosopher);
+void eat(int philosopher);
+void take_forks(int philosopher);
+void put_forks(int philosopher);
+void test(int philosopher);
+
+void* philosopher(void* num) {
+    int philosopher = *(int*)num;
+
+    while (1) {
+        think(philosopher);
+        take_forks(philosopher);
+        eat(philosopher);
+        put_forks(philosopher);
+    }
+}
+
+void think(int philosopher) {
+    printf("Philosopher %d is thinking.\n", philosopher);
+    sleep(1);
+}
+
+void eat(int philosopher) {
+    printf("Philosopher %d is eating.\n", philosopher);
+    sleep(2);
+}
+
+void take_forks(int philosopher) {
+    pthread_mutex_lock(&mutex);
+    state[philosopher] = HUNGRY;
+    printf("Philosopher %d is hungry.\n", philosopher);
+    test(philosopher);
+    pthread_cond_wait(&cond[philosopher], &mutex);
+    pthread_mutex_unlock(&mutex);
+}
+
+void put_forks(int philosopher) {
+    pthread_mutex_lock(&mutex);
+    state[philosopher] = THINKING;
+    printf("Philosopher %d has finished eating and is thinking.\n", philosopher);
+    test((philosopher + NUM_PHILOSOPHERS - 1) % NUM_PHILOSOPHERS);
+    test((philosopher + 1) % NUM_PHILOSOPHERS);
+    pthread_mutex_unlock(&mutex);
+}
+
+void test(int philosopher) {
+    if (state[philosopher] == HUNGRY &&
+        state[(philosopher + NUM_PHILOSOPHERS - 1) % NUM_PHILOSOPHERS] != EATING &&
+        state[(philosopher + 1) % NUM_PHILOSOPHERS] != EATING) {
+        state[philosopher] = EATING;
+        pthread_cond_signal(&cond[philosopher]);
+    }
+}
+
+int main() {
+    pthread_t thread_id[NUM_PHILOSOPHERS];
+    int philosopher_numbers[NUM_PHILOSOPHERS];
+
+    pthread_mutex_init(&mutex, NULL);
+    for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
+        pthread_mutex_init(&forks[i], NULL);
+        pthread_cond_init(&cond[i], NULL);
+        state[i] = THINKING;
+        philosopher_numbers[i] = i;
+    }
+
+    for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
+        pthread_create(&thread_id[i], NULL, philosopher, (void*)&philosopher_numbers[i]);
+    }
+
+    for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
+        pthread_join(thread_id[i], NULL);
+    }
+
+    pthread_mutex_destroy(&mutex);
+    for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
+        pthread_mutex_destroy(&forks[i]);
+        pthread_cond_destroy(&cond[i]);
+    }
+
+    return 0;
+}
